@@ -1,0 +1,1944 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Continuous Probability Modeling</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap');
+
+  :root {
+    --bg: #0d0f14;
+    --surface: #14171f;
+    --surface2: #1c2030;
+    --border: #2a2f42;
+    --accent: #5c8fff;
+    --accent2: #ff6b6b;
+    --accent3: #4ecdc4;
+    --text: #e8eaf2;
+    --text-muted: #8891aa;
+    --success: #56cf89;
+    --radius: 12px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
+  }
+
+  /* HEADER */
+  header {
+    background: linear-gradient(135deg, #0d0f14 0%, #1a1f35 100%);
+    border-bottom: 1px solid var(--border);
+    padding: 28px 40px;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+  }
+  .header-icon {
+    width: 48px; height: 48px;
+    background: var(--accent);
+    border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px;
+  }
+  header h1 {
+    font-family: 'DM Serif Display', serif;
+    font-size: 1.6rem;
+    color: var(--text);
+  }
+  header p {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    font-family: 'DM Mono', monospace;
+    letter-spacing: 0.04em;
+  }
+
+  /* TABS */
+  .tabs {
+    display: flex;
+    gap: 4px;
+    padding: 16px 40px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+  }
+  .tab-btn {
+    padding: 10px 22px;
+    border-radius: 8px;
+    border: 1px solid transparent;
+    background: transparent;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.88rem;
+    font-weight: 500;
+    transition: all 0.2s;
+  }
+  .tab-btn.active {
+    background: var(--accent);
+    color: #fff;
+  }
+  .tab-btn:not(.active):hover {
+    border-color: var(--border);
+    color: var(--text);
+  }
+
+  /* MAIN LAYOUT */
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  .layout {
+    display: grid;
+    grid-template-columns: 320px 1fr;
+    gap: 0;
+    min-height: calc(100vh - 130px);
+  }
+
+  /* SIDEBAR */
+  .sidebar {
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    padding: 28px 24px;
+    overflow-y: auto;
+  }
+  .sidebar h2 {
+    font-family: 'DM Serif Display', serif;
+    font-size: 1.05rem;
+    margin-bottom: 18px;
+    color: var(--text);
+  }
+
+  .dist-selector {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 24px;
+  }
+  .dist-btn {
+    padding: 10px 14px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--surface2);
+    color: var(--text-muted);
+    cursor: pointer;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.85rem;
+    text-align: left;
+    transition: all 0.15s;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .dist-btn span.dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--border);
+    flex-shrink: 0;
+  }
+  .dist-btn.active { border-color: var(--accent); color: var(--text); }
+  .dist-btn.active span.dot { background: var(--accent); }
+  .dist-btn:hover:not(.active) { border-color: #3a4060; color: var(--text); }
+
+  .param-group { margin-bottom: 20px; }
+  .param-group label {
+    display: block;
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    font-family: 'DM Mono', monospace;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+  .param-group input, .param-group select {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    padding: 9px 12px;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.9rem;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .param-group input:focus, .param-group select:focus {
+    border-color: var(--accent);
+  }
+
+  .divider {
+    height: 1px;
+    background: var(--border);
+    margin: 20px 0;
+  }
+
+  .prob-section h3 {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    font-family: 'DM Mono', monospace;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    margin-bottom: 14px;
+  }
+  .prob-type-btns {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 14px;
+    flex-wrap: wrap;
+  }
+  .prob-type-btn {
+    padding: 6px 10px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: var(--surface2);
+    color: var(--text-muted);
+    cursor: pointer;
+    font-size: 0.78rem;
+    font-family: 'DM Mono', monospace;
+    transition: all 0.15s;
+  }
+  .prob-type-btn.active { border-color: var(--accent3); color: var(--accent3); }
+
+  .prob-inputs { display: flex; flex-direction: column; gap: 10px; }
+  .prob-inputs input {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    padding: 8px 12px;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.9rem;
+    outline: none;
+  }
+  .prob-inputs input:focus { border-color: var(--accent3); }
+
+  .prob-result {
+    margin-top: 16px;
+    padding: 14px;
+    border-radius: 10px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    text-align: center;
+  }
+  .prob-result .label {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    font-family: 'DM Mono', monospace;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+  .prob-result .value {
+    font-size: 2rem;
+    font-family: 'DM Serif Display', serif;
+    color: var(--accent3);
+    margin-top: 4px;
+  }
+
+  /* CHART AREA */
+  .chart-area {
+    padding: 32px 36px;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+  }
+  .chart-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+  }
+  .chart-header h2 {
+    font-family: 'DM Serif Display', serif;
+    font-size: 1.4rem;
+  }
+  .chart-header p {
+    font-size: 0.82rem;
+    color: var(--text-muted);
+    margin-top: 4px;
+  }
+  .badge {
+    padding: 5px 12px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-family: 'DM Mono', monospace;
+    letter-spacing: 0.05em;
+    border: 1px solid var(--accent);
+    color: var(--accent);
+  }
+
+  .canvas-wrapper {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 24px;
+    position: relative;
+  }
+  .canvas-wrapper canvas { display: block; max-height: 380px; }
+
+  .info-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 14px;
+  }
+  .info-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px 18px;
+  }
+  .info-card .ic-label {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    font-family: 'DM Mono', monospace;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+  .info-card .ic-value {
+    font-size: 1.25rem;
+    font-family: 'DM Serif Display', serif;
+    margin-top: 4px;
+    color: var(--accent);
+  }
+
+  /* PIECEWISE editor */
+  .piece-editor { display: flex; flex-direction: column; gap: 8px; }
+  .piece-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr auto;
+    gap: 6px;
+    align-items: center;
+  }
+  .piece-row input {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    padding: 7px 10px;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.82rem;
+    outline: none;
+  }
+  .piece-row input:focus { border-color: var(--accent); }
+  .btn-small {
+    padding: 6px 10px;
+    border-radius: 6px;
+    border: 1px solid var(--accent2);
+    background: transparent;
+    color: var(--accent2);
+    cursor: pointer;
+    font-size: 0.8rem;
+    font-family: 'DM Mono', monospace;
+  }
+  .btn-add {
+    padding: 8px;
+    border-radius: 6px;
+    border: 1px dashed var(--accent);
+    background: transparent;
+    color: var(--accent);
+    cursor: pointer;
+    font-size: 0.82rem;
+    font-family: 'DM Sans', sans-serif;
+    width: 100%;
+    margin-top: 4px;
+  }
+  .btn-add:hover { background: rgba(92,143,255,0.08); }
+  .warn {
+    font-size: 0.78rem;
+    color: var(--accent2);
+    font-family: 'DM Mono', monospace;
+    margin-top: 6px;
+  }
+
+  /* C9 DATA MODE */
+  .c9-layout {
+    display: grid;
+    grid-template-columns: 340px 1fr;
+    min-height: calc(100vh - 130px);
+  }
+  .c9-sidebar {
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    padding: 28px 24px;
+    overflow-y: auto;
+  }
+  .c9-sidebar h2 {
+    font-family: 'DM Serif Display', serif;
+    font-size: 1.05rem;
+    margin-bottom: 16px;
+  }
+  textarea {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    padding: 10px 12px;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.82rem;
+    resize: vertical;
+    outline: none;
+    min-height: 120px;
+  }
+  textarea:focus { border-color: var(--accent); }
+  .btn-primary {
+    width: 100%;
+    padding: 11px;
+    border-radius: 8px;
+    border: none;
+    background: var(--accent);
+    color: #fff;
+    cursor: pointer;
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 600;
+    font-size: 0.9rem;
+    margin-top: 12px;
+    transition: opacity 0.2s;
+  }
+  .btn-primary:hover { opacity: 0.85; }
+
+  .c9-chart-area {
+    padding: 32px 36px;
+    overflow-y: auto;
+  }
+
+  .fitted-params {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 18px 20px;
+    margin-top: 20px;
+  }
+  .fitted-params h3 {
+    font-family: 'DM Serif Display', serif;
+    font-size: 1rem;
+    margin-bottom: 12px;
+  }
+  .params-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 10px;
+  }
+  .param-chip {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 14px;
+  }
+  .param-chip .pc-label {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    font-family: 'DM Mono', monospace;
+    letter-spacing: 0.05em;
+  }
+  .param-chip .pc-val {
+    font-size: 1.1rem;
+    font-family: 'DM Mono', monospace;
+    color: var(--accent);
+    margin-top: 2px;
+  }
+
+  .interpretation {
+    margin-top: 16px;
+    padding: 14px 16px;
+    border-radius: 10px;
+    border-left: 3px solid var(--accent3);
+    background: rgba(78,205,196,0.06);
+    font-size: 0.85rem;
+    line-height: 1.6;
+    color: var(--text);
+  }
+
+  .file-drop {
+    border: 2px dashed var(--border);
+    border-radius: 10px;
+    padding: 16px;
+    text-align: center;
+    cursor: pointer;
+    color: var(--text-muted);
+    font-size: 0.82rem;
+    transition: border-color 0.2s;
+    margin-bottom: 10px;
+  }
+  .file-drop:hover { border-color: var(--accent); }
+  #file-input { display: none; }
+
+  .section-title {
+    font-family: 'DM Serif Display', serif;
+    font-size: 1.2rem;
+    margin-bottom: 8px;
+  }
+  .section-sub {
+    font-size: 0.82rem;
+    color: var(--text-muted);
+    margin-bottom: 20px;
+  }
+
+  /* PROB CALC CARDS */
+  .prob-cards {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin-top: 16px;
+  }
+  .prob-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+    text-align: center;
+  }
+  .prob-card .pc-type {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    font-family: 'DM Mono', monospace;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+  .prob-card .pc-val {
+    font-size: 1.5rem;
+    font-family: 'DM Serif Display', serif;
+    color: var(--accent3);
+  }
+
+  @media (max-width: 900px) {
+    .layout, .c9-layout { grid-template-columns: 1fr; }
+    .sidebar, .c9-sidebar { border-right: none; border-bottom: 1px solid var(--border); }
+    header { padding: 20px; }
+    .tabs { padding: 12px 20px; }
+    .chart-area, .c9-chart-area { padding: 20px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-icon">∫</div>
+  <div>
+    <h1>Continuous Probability Modeling</h1>
+    <p>Global Economics · Grade 10 · Term 3 · Learning Evidence 4 · C8–C9</p>
+  </div>
+</header>
+
+<div class="tabs">
+  <button class="tab-btn active" onclick="switchTab('c8')">C8 — Simulation Mode</button>
+  <button class="tab-btn" onclick="switchTab('c9')">C9 — Data Modeling Mode</button>
+  <button class="tab-btn" onclick="switchTab('c10')">C10 — Report Graphs</button>
+</div>
+
+<!-- ═══════════════════════ C8 ═══════════════════════ -->
+<div id="tab-c8" class="tab-content active">
+  <div class="layout">
+    <div class="sidebar">
+      <h2>Distribution</h2>
+      <div class="dist-selector">
+        <button class="dist-btn active" onclick="selectDist('uniform')">
+          <span class="dot"></span>Uniform
+        </button>
+        <button class="dist-btn" onclick="selectDist('triangular')">
+          <span class="dot"></span>Triangular
+        </button>
+        <button class="dist-btn" onclick="selectDist('linear')">
+          <span class="dot"></span>Linear (Increasing / Decreasing)
+        </button>
+        <button class="dist-btn" onclick="selectDist('piecewise')">
+          <span class="dot"></span>Piecewise
+        </button>
+        <button class="dist-btn" onclick="selectDist('normal')">
+          <span class="dot"></span>Normal
+        </button>
+      </div>
+
+      <!-- PARAMS -->
+      <div id="params-container"></div>
+
+      <div class="divider"></div>
+
+      <!-- PROBABILITY -->
+      <div class="prob-section">
+        <h3>Probability Calculation</h3>
+        <div class="prob-type-btns">
+          <button class="prob-type-btn active" onclick="setProbType('below')">P(X &lt; b)</button>
+          <button class="prob-type-btn" onclick="setProbType('above')">P(X &gt; a)</button>
+          <button class="prob-type-btn" onclick="setProbType('between')">P(a &lt; X &lt; b)</button>
+        </div>
+        <div class="prob-inputs" id="prob-inputs-container"></div>
+        <div class="prob-result">
+          <div class="label">Probability</div>
+          <div class="value" id="prob-value">—</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="chart-area">
+      <div class="chart-header">
+        <div>
+          <h2 id="c8-title">Uniform Distribution</h2>
+          <p id="c8-subtitle">Constant PDF over a closed interval [a, b]</p>
+        </div>
+        <span class="badge" id="c8-badge">PDF</span>
+      </div>
+      <div class="canvas-wrapper">
+        <canvas id="c8-chart"></canvas>
+      </div>
+      <p style="font-size:0.76rem;color:var(--text-muted);font-family:'DM Mono',monospace;margin-top:8px;padding-left:4px;">
+        ↑ hover to inspect · click to set probability bound
+      </p>
+      <div class="info-cards" id="c8-info-cards"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════ C9 ═══════════════════════ -->
+<div id="tab-c9" class="tab-content">
+  <div class="c9-layout">
+    <div class="c9-sidebar">
+      <h2>Data Input</h2>
+      <div class="file-drop" onclick="document.getElementById('file-input').click()">
+        📂 Click to upload .txt or .csv<br>
+        <small style="color:var(--text-muted)">one value per line or comma-separated</small>
+      </div>
+      <input type="file" id="file-input" accept=".csv,.txt" onchange="loadFile(event)">
+      <div class="param-group" style="margin-top:12px;">
+        <label>Or paste data</label>
+        <textarea id="data-input" placeholder="e.g. 2.3, 4.1, 3.8, 5.0, ..."></textarea>
+      </div>
+      <div class="param-group">
+        <label>Fit distribution</label>
+        <select id="c9-dist-select" onchange="c9DistChanged()">
+          <option value="uniform">Uniform</option>
+          <option value="triangular">Triangular</option>
+          <option value="linear">Linear</option>
+          <option value="piecewise_uniform">Piecewise Uniform (4 bins)</option>
+          <option value="normal" selected>Normal</option>
+          <option value="all">⬛ Compare all models</option>
+        </select>
+      </div>
+      <div class="param-group">
+        <label>Histogram bins <span style="color:var(--accent3);font-size:0.7rem;">(auto)</span></label>
+        <div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-family:'DM Mono',monospace;font-size:0.9rem;color:var(--accent3);" id="c9-bins-display">—</div>
+        <input type="hidden" id="c9-bins" value="15">
+      </div>
+      <button class="btn-primary" onclick="runC9()">Fit &amp; Visualize</button>
+
+      <div class="divider"></div>
+      <p style="font-size:0.78rem;color:var(--text-muted);line-height:1.6;">Test datasets:</p>
+      <div style="display:flex;flex-direction:column;gap:6px;margin-top:10px;">
+        <button class="dist-btn" onclick="loadSample('uniform')"><span class="dot"></span>Uniform-like</button>
+        <button class="dist-btn" onclick="loadSample('triangular')"><span class="dot"></span>Triangular-like</button>
+        <button class="dist-btn" onclick="loadSample('normal')"><span class="dot"></span>Normal-like</button>
+      </div>
+
+      <div class="divider"></div>
+      <!-- PROBABILITY QUERY TOOL -->
+      <div id="c9-prob-query" style="display:none;">
+        <h2 style="margin-bottom:12px;">Probability Query</h2>
+        <div class="prob-type-btns" style="margin-bottom:12px;">
+          <button class="prob-type-btn active" id="qb-below" onclick="setQueryType('below')">P(X&lt;b)</button>
+          <button class="prob-type-btn" id="qb-above" onclick="setQueryType('above')">P(X&gt;a)</button>
+          <button class="prob-type-btn" id="qb-between" onclick="setQueryType('between')">P(a&lt;X&lt;b)</button>
+        </div>
+        <div id="c9-query-inputs" style="display:flex;flex-direction:column;gap:8px;"></div>
+        <div class="prob-result" style="margin-top:12px;">
+          <div class="label">P =</div>
+          <div class="value" id="c9-query-result" style="font-size:1.6rem;">—</div>
+          <div style="font-size:0.72rem;color:var(--text-muted);font-family:'DM Mono',monospace;margin-top:4px;" id="c9-query-label"></div>
+        </div>
+        <p style="font-size:0.72rem;color:var(--text-muted);font-family:'DM Mono',monospace;margin-top:8px;">
+          ↑ or click on chart to set bound
+        </p>
+      </div>
+    </div>
+
+    <div class="c9-chart-area">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px;">
+        <div>
+          <div class="section-title" id="c9-chart-title">Data Modeling & Distribution Fitting</div>
+          <div class="section-sub">Upload or enter data, then fit a distribution and query probabilities.</div>
+        </div>
+        <button id="c9-download-btn" style="display:none;padding:8px 16px;border-radius:8px;border:1px solid var(--accent3);background:transparent;color:var(--accent3);cursor:pointer;font-family:'DM Mono',monospace;font-size:0.8rem;" onclick="downloadC9Chart()">↓ Save chart</button>
+      </div>
+
+      <div class="canvas-wrapper" style="margin-bottom:4px;position:relative;">
+        <canvas id="c9-chart"></canvas>
+      </div>
+      <p style="font-size:0.76rem;color:var(--text-muted);font-family:'DM Mono',monospace;margin-bottom:20px;padding-left:4px;">
+        ↑ hover to inspect · click to set probability bound
+      </p>
+
+      <div id="c9-fitted-params" style="display:none;" class="fitted-params">
+        <h3 id="c9-params-title">Fitted Parameters</h3>
+        <div class="params-grid" id="c9-params-grid"></div>
+        <div class="interpretation" id="c9-interpretation"></div>
+      </div>
+
+      <div id="c9-prob-section" style="display:none;margin-top:20px;">
+        <div class="section-title" style="font-size:1rem;">Probability Summary (σ-bands)</div>
+        <div class="prob-cards" id="c9-prob-cards"></div>
+      </div>
+
+      <!-- COMPARE TABLE shown when "all models" is selected -->
+      <div id="c9-compare-table" style="display:none;margin-top:24px;">
+        <div class="section-title" style="font-size:1rem;">Model Comparison</div>
+        <div style="overflow-x:auto;margin-top:10px;">
+          <table id="compare-tbl" style="width:100%;border-collapse:collapse;font-family:'DM Mono',monospace;font-size:0.8rem;">
+            <thead>
+              <tr style="border-bottom:1px solid var(--border);">
+                <th style="text-align:left;padding:8px 12px;color:var(--text-muted);">Model</th>
+                <th style="text-align:right;padding:8px 12px;color:var(--text-muted);">P(μ−σ&lt;X&lt;μ+σ)</th>
+                <th style="text-align:right;padding:8px 12px;color:var(--text-muted);">P(tails&gt;2σ)</th>
+                <th style="text-align:left;padding:8px 12px;color:var(--text-muted);">Parameters</th>
+              </tr>
+            </thead>
+            <tbody id="compare-tbl-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════ C10 ═══════════════════════ -->
+<div id="tab-c10" class="tab-content">
+  <div style="padding:32px 40px;max-width:1100px;">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;">
+      <div>
+        <div class="section-title" style="font-size:1.4rem;">C10 — Report Graphs</div>
+        <div class="section-sub" style="margin-bottom:0;">Three real-life Colombian datasets from the report, fitted with Piecewise Uniform, Linear, and Normal models.</div>
+      </div>
+    </div>
+
+    <!-- DATASET TABS -->
+    <div style="display:flex;gap:6px;margin:20px 0 28px;">
+      <button class="prob-type-btn active" id="ds-btn-0" onclick="showDataset(0)">Dataset 1 · Bogotá Temperature</button>
+      <button class="prob-type-btn" id="ds-btn-1" onclick="showDataset(1)">Dataset 2 · Coffee Price</button>
+      <button class="prob-type-btn" id="ds-btn-2" onclick="showDataset(2)">Dataset 3 · TransMilenio</button>
+    </div>
+
+    <!-- per-dataset panel -->
+    <div id="c10-panel">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+        <div>
+          <div style="font-family:'DM Serif Display',serif;font-size:1.15rem;" id="c10-ds-title"></div>
+          <div style="font-size:0.8rem;color:var(--text-muted);margin-top:3px;" id="c10-ds-sub"></div>
+        </div>
+        <button style="padding:8px 16px;border-radius:8px;border:1px solid var(--accent3);background:transparent;color:var(--accent3);cursor:pointer;font-family:'DM Mono',monospace;font-size:0.8rem;" onclick="downloadC10Chart()">↓ Save chart</button>
+      </div>
+
+      <!-- 3 side-by-side charts -->
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:20px;">
+        <div>
+          <div style="font-size:0.72rem;color:var(--text-muted);font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;">Piecewise Uniform</div>
+          <div class="canvas-wrapper" style="padding:12px;"><canvas id="c10-chart-0"></canvas></div>
+        </div>
+        <div>
+          <div style="font-size:0.72rem;color:var(--text-muted);font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;">Linear</div>
+          <div class="canvas-wrapper" style="padding:12px;"><canvas id="c10-chart-1"></canvas></div>
+        </div>
+        <div>
+          <div style="font-size:0.72rem;color:var(--text-muted);font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;">Normal</div>
+          <div class="canvas-wrapper" style="padding:12px;"><canvas id="c10-chart-2"></canvas></div>
+        </div>
+      </div>
+
+      <!-- probability table -->
+      <div class="fitted-params">
+        <h3 style="margin-bottom:14px;" id="c10-prob-title">Probability Calculations</h3>
+        <div style="overflow-x:auto;">
+          <table style="width:100%;border-collapse:collapse;font-family:'DM Mono',monospace;font-size:0.82rem;">
+            <thead>
+              <tr style="border-bottom:1px solid var(--border);">
+                <th style="text-align:left;padding:8px 12px;color:var(--text-muted);">Model</th>
+                <th style="text-align:right;padding:8px 12px;color:var(--text-muted);">μ</th>
+                <th style="text-align:right;padding:8px 12px;color:var(--text-muted);">σ</th>
+                <th style="text-align:right;padding:8px 12px;color:var(--text-muted);">P(μ−σ &lt; X &lt; μ+σ)</th>
+                <th style="text-align:right;padding:8px 12px;color:var(--text-muted);">P(X &lt; μ−2σ or X &gt; μ+2σ)</th>
+              </tr>
+            </thead>
+            <tbody id="c10-prob-body"></tbody>
+          </table>
+        </div>
+        <div class="interpretation" style="margin-top:14px;" id="c10-interp"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ──────────────────────────────────────────────────────
+//  GLOBAL STATE
+// ──────────────────────────────────────────────────────
+let currentDist = 'uniform';
+let probType = 'below';
+let c8Chart = null;
+let c9Chart = null;
+let pieceParts = [
+  { a: 0, b: 3, k: 1/6 },
+  { b: 6, k: 1/6 }
+];
+
+const distMeta = {
+  uniform:    { title: 'Uniform Distribution',   sub: 'Constant PDF on [a, b]' },
+  triangular: { title: 'Triangular Distribution', sub: 'Linear increase to mode, then decrease' },
+  linear:     { title: 'Linear Distribution',     sub: 'Increasing or decreasing linear PDF' },
+  piecewise:  { title: 'Piecewise Distribution',  sub: 'User-defined intervals with constants' },
+  normal:     { title: 'Normal Distribution',     sub: 'Bell-shaped curve defined by μ and σ' },
+};
+
+// ──────────────────────────────────────────────────────
+//  TAB SWITCHER
+// ──────────────────────────────────────────────────────
+function switchTab(t) {
+  document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+  document.getElementById('tab-' + t).classList.add('active');
+  event.target.classList.add('active');
+  if (t === 'c10') setTimeout(() => renderC10Dataset(c10ActiveDs), 50);
+}
+
+// ──────────────────────────────────────────────────────
+//  C8 — DISTRIBUTION SELECTOR
+// ──────────────────────────────────────────────────────
+function selectDist(d) {
+  currentDist = d;
+  document.querySelectorAll('.dist-btn').forEach(b => b.classList.remove('active'));
+  event.currentTarget.classList.add('active');
+  document.getElementById('c8-title').textContent = distMeta[d].title;
+  document.getElementById('c8-subtitle').textContent = distMeta[d].sub;
+  renderParamUI();
+  drawChart();
+}
+
+function renderParamUI() {
+  const c = document.getElementById('params-container');
+  c.innerHTML = '';
+
+  const inp = (id, label, val, step) => `
+    <div class="param-group">
+      <label>${label}</label>
+      <input type="number" id="${id}" value="${val}" step="${step||'any'}" oninput="drawChart()">
+    </div>`;
+
+  if (currentDist === 'uniform') {
+    c.innerHTML = inp('u-a','Lower endpoint (a)', 0) + inp('u-b','Upper endpoint (b)', 6);
+  } else if (currentDist === 'triangular') {
+    c.innerHTML = inp('t-a','Lower endpoint (a)', 0) + inp('t-b','Upper endpoint (b)', 10) + inp('t-c','Mode (c)', 4);
+  } else if (currentDist === 'linear') {
+    c.innerHTML = inp('l-a','Lower endpoint (a)', 0) + inp('l-b','Upper endpoint (b)', 4) +
+      `<div class="param-group"><label>Direction</label>
+        <select id="l-dir" onchange="drawChart()">
+          <option value="inc">Increasing</option>
+          <option value="dec">Decreasing</option>
+        </select></div>`;
+  } else if (currentDist === 'normal') {
+    c.innerHTML = inp('n-mu','Mean (μ)', 0) + inp('n-sigma','Std Dev (σ)', 1, '0.01');
+  } else if (currentDist === 'piecewise') {
+    renderPieceEditor(c);
+  }
+  renderProbInputs();
+  drawChart();
+}
+
+function renderPieceEditor(container) {
+  let html = '<div class="param-group"><label>Pieces — [a, b) with constant k</label></div>';
+  html += '<div class="piece-editor" id="piece-editor">';
+  pieceParts.forEach((p, i) => {
+    html += `<div class="piece-row" id="pr-${i}">
+      <input type="number" placeholder="a" value="${p.a}" oninput="updatePiece(${i},'a',this.value)">
+      <input type="number" placeholder="b" value="${p.b}" oninput="updatePiece(${i},'b',this.value)">
+      <input type="number" placeholder="k" value="${p.k}" step="any" oninput="updatePiece(${i},'k',this.value)">
+      <button class="btn-small" onclick="removePiece(${i})">✕</button>
+    </div>`;
+  });
+  html += '</div>';
+  html += `<button class="btn-add" onclick="addPiece()">+ Add piece</button>`;
+  html += `<div class="warn" id="piece-warn"></div>`;
+  container.innerHTML = html;
+}
+
+function updatePiece(i, field, val) {
+  pieceParts[i][field] = parseFloat(val);
+  validatePieces(); drawChart();
+}
+function addPiece() {
+  const last = pieceParts[pieceParts.length - 1];
+  pieceParts.push({ a: last ? last.b : 0, b: (last ? last.b : 0) + 2, k: 0.1 });
+  renderParamUI();
+}
+function removePiece(i) {
+  pieceParts.splice(i, 1);
+  renderParamUI();
+}
+function validatePieces() {
+  const total = pieceParts.reduce((s, p) => s + p.k * (p.b - p.a), 0);
+  const w = document.getElementById('piece-warn');
+  if (w) w.textContent = Math.abs(total - 1) > 0.005 ? `⚠ Total area = ${total.toFixed(4)} (must equal 1)` : '';
+}
+
+// ──────────────────────────────────────────────────────
+//  C8 — PROB TYPE
+// ──────────────────────────────────────────────────────
+function setProbType(t) {
+  probType = t;
+  document.querySelectorAll('.prob-type-btn').forEach(b => b.classList.remove('active'));
+  event.currentTarget.classList.add('active');
+  renderProbInputs();
+  drawChart();
+}
+
+function renderProbInputs() {
+  const c = document.getElementById('prob-inputs-container');
+  if (probType === 'below') {
+    c.innerHTML = `<input type="number" id="pb-b" placeholder="b" step="any" oninput="drawChart()">`;
+  } else if (probType === 'above') {
+    c.innerHTML = `<input type="number" id="pa-a" placeholder="a" step="any" oninput="drawChart()">`;
+  } else {
+    c.innerHTML = `<input type="number" id="pbt-a" placeholder="a (lower)" step="any" oninput="drawChart()">
+                   <input type="number" id="pbt-b" placeholder="b (upper)" step="any" oninput="drawChart()">`;
+  }
+}
+
+// ──────────────────────────────────────────────────────
+//  PDF FUNCTIONS
+// ──────────────────────────────────────────────────────
+function getPDFParams() {
+  const g = id => { const el = document.getElementById(id); return el ? parseFloat(el.value) : NaN; };
+  const gs = id => { const el = document.getElementById(id); return el ? el.value : ''; };
+  switch (currentDist) {
+    case 'uniform':    return { a: g('u-a'), b: g('u-b') };
+    case 'triangular': return { a: g('t-a'), b: g('t-b'), c: g('t-c') };
+    case 'linear':     return { a: g('l-a'), b: g('l-b'), dir: gs('l-dir') };
+    case 'normal':     return { mu: g('n-mu'), sigma: g('n-sigma') };
+    case 'piecewise':  return { pieces: pieceParts };
+  }
+}
+
+function pdfAt(x, p) {
+  switch (currentDist) {
+    case 'uniform': {
+      if (p.b <= p.a) return 0;
+      return (x >= p.a && x <= p.b) ? 1/(p.b-p.a) : 0;
+    }
+    case 'triangular': {
+      const {a,b,c} = p;
+      if (b <= a || c < a || c > b) return 0;
+      if (x < a || x > b) return 0;
+      if (x <= c) return 2*(x-a)/((b-a)*(c-a));
+      return 2*(b-x)/((b-a)*(b-c));
+    }
+    case 'linear': {
+      const {a,b,dir} = p;
+      if (b <= a) return 0;
+      const h = p.b - p.a;
+      if (x < a || x > b) return 0;
+      if (dir === 'inc') return 2*(x-a)/(h*h);
+      return 2*(b-x)/(h*h);
+    }
+    case 'normal': {
+      const {mu,sigma} = p;
+      if (sigma <= 0) return 0;
+      return (1/(sigma*Math.sqrt(2*Math.PI)))*Math.exp(-0.5*((x-mu)/sigma)**2);
+    }
+    case 'piecewise': {
+      for (const piece of p.pieces) {
+        if (x >= piece.a && x < piece.b) return piece.k >= 0 ? piece.k : 0;
+      }
+      const last = p.pieces[p.pieces.length-1];
+      if (last && x === last.b) return last.k >= 0 ? last.k : 0;
+      return 0;
+    }
+  }
+  return 0;
+}
+
+function getDomain(p) {
+  switch (currentDist) {
+    case 'uniform':    return [p.a - (p.b-p.a)*0.15, p.b + (p.b-p.a)*0.15];
+    case 'triangular': return [p.a - (p.b-p.a)*0.1, p.b + (p.b-p.a)*0.1];
+    case 'linear':     return [p.a - (p.b-p.a)*0.1, p.b + (p.b-p.a)*0.1];
+    case 'normal': {
+      const r = Math.max(4*p.sigma, 1);
+      return [p.mu - r, p.mu + r];
+    }
+    case 'piecewise': {
+      const all = p.pieces.flatMap(pc => [pc.a, pc.b]);
+      const mn = Math.min(...all), mx = Math.max(...all);
+      return [mn - (mx-mn)*0.1, mx + (mx-mn)*0.1];
+    }
+  }
+  return [-5, 5];
+}
+
+// Numerical CDF (trapezoid integration)
+function cdfAt(x, p, domain) {
+  const [lo] = domain;
+  const n = 1000;
+  const start = Math.max(lo, x - 40);
+  const dx = (x - start) / n;
+  if (dx <= 0) return 0;
+  let sum = 0;
+  for (let i = 0; i < n; i++) {
+    const x0 = start + i*dx, x1 = start + (i+1)*dx;
+    sum += (pdfAt(x0,p) + pdfAt(x1,p)) * dx / 2;
+  }
+  return Math.min(Math.max(sum, 0), 1);
+}
+
+function probCalc(p, domain) {
+  if (probType === 'below') {
+    const b = parseFloat(document.getElementById('pb-b')?.value);
+    if (isNaN(b)) return null;
+    return { val: cdfAt(b,p,domain), lo: domain[0], hi: b };
+  }
+  if (probType === 'above') {
+    const a = parseFloat(document.getElementById('pa-a')?.value);
+    if (isNaN(a)) return null;
+    return { val: 1 - cdfAt(a,p,domain), lo: a, hi: domain[1] };
+  }
+  const a = parseFloat(document.getElementById('pbt-a')?.value);
+  const b = parseFloat(document.getElementById('pbt-b')?.value);
+  if (isNaN(a) || isNaN(b)) return null;
+  const val = cdfAt(b,p,domain) - cdfAt(a,p,domain);
+  return { val: Math.max(0, Math.min(1, val)), lo: a, hi: b };
+}
+
+// ──────────────────────────────────────────────────────
+//  C8 — DRAW CHART
+// ──────────────────────────────────────────────────────
+function drawChart() {
+  const p = getPDFParams();
+  if (!p) return;
+  const domain = getDomain(p);
+  const N = 600;
+  const dx = (domain[1]-domain[0])/N;
+  const xs = Array.from({length:N+1}, (_,i) => domain[0]+i*dx);
+  const ys = xs.map(x => pdfAt(x,p));
+
+  const prob = probCalc(p, domain);
+  const probVal = document.getElementById('prob-value');
+  if (prob) {
+    probVal.textContent = prob.val.toFixed(6);
+  } else {
+    probVal.textContent = '—';
+  }
+
+  // Shade region
+  const shadeX = [], shadeY = [];
+  if (prob) {
+    xs.forEach((x, i) => {
+      if (x >= prob.lo && x <= prob.hi) {
+        shadeX.push(x); shadeY.push(ys[i]);
+      }
+    });
+  }
+
+  const datasets = [
+    {
+      label: 'PDF',
+      data: xs.map((x,i) => ({x, y: ys[i]})),
+      borderColor: '#5c8fff',
+      backgroundColor: 'rgba(92,143,255,0.08)',
+      borderWidth: 2.5,
+      fill: true,
+      pointRadius: 0,
+      tension: 0.2,
+    }
+  ];
+  if (shadeX.length > 1) {
+    datasets.push({
+      label: 'P region',
+      data: shadeX.map((x,i) => ({x, y: shadeY[i]})),
+      borderColor: '#4ecdc4',
+      backgroundColor: 'rgba(78,205,196,0.35)',
+      borderWidth: 0,
+      fill: true,
+      pointRadius: 0,
+    });
+  }
+
+  if (c8Chart) c8Chart.destroy();
+  const ctx = document.getElementById('c8-chart').getContext('2d');
+
+  // Custom crosshair plugin
+  const crosshairPlugin = {
+    id: 'crosshair',
+    afterDraw(chart) {
+      if (chart._crosshairX == null) return;
+      const {ctx: c, chartArea: {top, bottom}} = chart;
+      c.save();
+      c.beginPath();
+      c.setLineDash([4, 4]);
+      c.strokeStyle = 'rgba(78,205,196,0.5)';
+      c.lineWidth = 1.5;
+      c.moveTo(chart._crosshairX, top);
+      c.lineTo(chart._crosshairX, bottom);
+      c.stroke();
+      c.restore();
+    }
+  };
+
+  c8Chart = new Chart(ctx, {
+    type: 'line',
+    data: { datasets },
+    plugins: [crosshairPlugin],
+    options: {
+      animation: false,
+      responsive: true,
+      interaction: { mode: 'index', intersect: false },
+      onHover(event, elements, chart) {
+        if (event.native) {
+          const rect = chart.canvas.getBoundingClientRect();
+          const xPx = event.native.clientX - rect.left;
+          const xVal = chart.scales.x.getValueForPixel(xPx);
+          chart._crosshairX = xPx;
+          chart._hoverX = xVal;
+          chart.draw();
+          showFloatingTooltip(event.native, xVal, chart);
+        }
+      },
+      scales: {
+        x: {
+          type: 'linear',
+          title: { display: true, text: 'x', color: '#8891aa' },
+          ticks: { color: '#8891aa' },
+          grid: { color: 'rgba(255,255,255,0.04)' }
+        },
+        y: {
+          title: { display: true, text: 'f(x)', color: '#8891aa' },
+          ticks: { color: '#8891aa' },
+          grid: { color: 'rgba(255,255,255,0.04)' },
+          beginAtZero: true,
+        }
+      },
+      plugins: {
+        legend: { labels: { color: '#8891aa', font: { family: 'DM Mono' } } },
+        tooltip: { enabled: false }
+      }
+    }
+  });
+
+  // Click handler: set probability bound at clicked x
+  const canvas = document.getElementById('c8-chart');
+  canvas.style.cursor = 'crosshair';
+  canvas._clickHandler && canvas.removeEventListener('click', canvas._clickHandler);
+  canvas._clickHandler = function(e) {
+    if (!c8Chart) return;
+    const rect = canvas.getBoundingClientRect();
+    const xPx = e.clientX - rect.left;
+    const xVal = c8Chart.scales.x.getValueForPixel(xPx);
+    applyClickX(xVal);
+  };
+  canvas.addEventListener('click', canvas._clickHandler);
+
+  // Hide floating tooltip when mouse leaves
+  canvas._leaveHandler && canvas.removeEventListener('mouseleave', canvas._leaveHandler);
+  canvas._leaveHandler = function() {
+    const ft = document.getElementById('floating-tooltip');
+    if (ft) ft.style.opacity = '0';
+    if (c8Chart) { c8Chart._crosshairX = null; c8Chart.draw(); }
+  };
+  canvas.addEventListener('mouseleave', canvas._leaveHandler);
+
+  updateInfoCards(p, domain);
+  if (currentDist === 'piecewise') validatePieces();
+}
+
+function mean_variance(p, domain) {
+  const [lo, hi] = domain;
+  const n = 2000, dx = (hi-lo)/n;
+  let mu=0, m2=0;
+  for (let i=0;i<=n;i++) {
+    const x = lo+i*dx, f = pdfAt(x,p);
+    mu += f*x*dx; m2 += f*x*x*dx;
+  }
+  const va = m2 - mu*mu;
+  return { mu, sigma: Math.sqrt(Math.max(0,va)) };
+}
+
+function updateInfoCards(p, domain) {
+  const {mu, sigma} = mean_variance(p, domain);
+  const cards = [
+    {label:'Mean (μ)', val: mu.toFixed(4)},
+    {label:'Std Dev (σ)', val: sigma.toFixed(4)},
+    {label:'P(μ−σ < X < μ+σ)', val: (cdfAt(mu+sigma,p,domain)-cdfAt(mu-sigma,p,domain)).toFixed(4)},
+    {label:'P(X < μ−2σ or X > μ+2σ)', val: (1-(cdfAt(mu+2*sigma,p,domain)-cdfAt(mu-2*sigma,p,domain))).toFixed(4)},
+  ];
+  document.getElementById('c8-info-cards').innerHTML = cards.map(c=>
+    `<div class="info-card"><div class="ic-label">${c.label}</div><div class="ic-value">${c.val}</div></div>`
+  ).join('');
+}
+
+// ──────────────────────────────────────────────────────
+//  C9 — DATA MODELING
+// ──────────────────────────────────────────────────────
+function loadFile(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    document.getElementById('data-input').value = ev.target.result.replace(/\n/g, ',');
+    runC9();
+  };
+  reader.readAsText(file);
+}
+
+// Sample datasets
+const SAMPLES = {
+  uniform: Array.from({length:200}, () => +(Math.random()*10).toFixed(3)),
+  triangular: (() => {
+    // Triangular via inverse CDF (a=2,b=10,c=6)
+    const a=2,b=10,c=6,n=200;
+    return Array.from({length:n}, ()=>{
+      const u=Math.random(), fc=(c-a)/(b-a);
+      return u<fc ? +(a+Math.sqrt(u*(b-a)*(c-a))).toFixed(3) : +(b-Math.sqrt((1-u)*(b-a)*(b-c))).toFixed(3);
+    });
+  })(),
+  normal: (() => {
+    const n=200, mu=5, sigma=1.5;
+    return Array.from({length:n}, ()=>{
+      const u1=Math.random(), u2=Math.random();
+      return +(mu + sigma*Math.sqrt(-2*Math.log(u1))*Math.cos(2*Math.PI*u2)).toFixed(3);
+    });
+  })()
+};
+
+function loadSample(type) {
+  document.getElementById('data-input').value = SAMPLES[type].join(', ');
+  document.getElementById('c9-dist-select').value = type === 'normal' ? 'normal' : type;
+  runC9();
+}
+
+function parseData() {
+  const raw = document.getElementById('data-input').value;
+  return raw.split(/[\s,;]+/).map(Number).filter(v => !isNaN(v) && v!==null);
+}
+
+// ──────────────────────────────────────────────────────
+//  C9 — QUERY TYPE
+// ──────────────────────────────────────────────────────
+let c9QueryType = 'below';
+let c9LastData = [], c9LastDist = 'normal', c9LastParams = {};
+
+function setQueryType(t) {
+  c9QueryType = t;
+  ['below','above','between'].forEach(k => {
+    document.getElementById('qb-'+k)?.classList.toggle('active', k===t);
+  });
+  renderQueryInputs();
+  computeQueryProb();
+}
+
+function renderQueryInputs() {
+  const c = document.getElementById('c9-query-inputs');
+  if (!c) return;
+  const inp = (id, ph) => `<input type="number" id="${id}" placeholder="${ph}" step="any"
+    style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:8px 12px;font-family:'DM Mono',monospace;font-size:0.88rem;outline:none;width:100%;"
+    oninput="computeQueryProb()">`;
+  if (c9QueryType==='below') c.innerHTML = inp('cq-b','b');
+  else if (c9QueryType==='above') c.innerHTML = inp('cq-a','a');
+  else c.innerHTML = inp('cq-a2','a (lower)') + '<div style="height:6px"></div>' + inp('cq-b2','b (upper)');
+}
+
+function computeQueryProb() {
+  const res = document.getElementById('c9-query-result');
+  const lbl = document.getElementById('c9-query-label');
+  if (!res) return;
+  if (!c9LastData.length || !c9LastParams || c9LastDist==='all') { res.textContent='—'; return; }
+  const domain = [Math.min(...c9LastData)-2, Math.max(...c9LastData)+2];
+  const cdfFn = x => {
+    const n=800, lo=domain[0], dx=(x-lo)/n;
+    if(dx<=0) return 0;
+    let s=0;
+    for(let i=0;i<n;i++){const x0=lo+i*dx,x1=lo+(i+1)*dx;s+=(pdfAtC9(x0,c9LastDist,c9LastParams)+pdfAtC9(x1,c9LastDist,c9LastParams))*dx/2;}
+    return Math.min(Math.max(s,0),1);
+  };
+  let val=null, label='';
+  if (c9QueryType==='below') {
+    const b=parseFloat(document.getElementById('cq-b')?.value);
+    if (!isNaN(b)) { val=cdfFn(b); label=`P(X < ${b.toFixed(4)})`; }
+  } else if (c9QueryType==='above') {
+    const a=parseFloat(document.getElementById('cq-a')?.value);
+    if (!isNaN(a)) { val=1-cdfFn(a); label=`P(X > ${a.toFixed(4)})`; }
+  } else {
+    const a=parseFloat(document.getElementById('cq-a2')?.value);
+    const b=parseFloat(document.getElementById('cq-b2')?.value);
+    if (!isNaN(a)&&!isNaN(b)) { val=Math.max(0,cdfFn(b)-cdfFn(a)); label=`P(${a.toFixed(4)} < X < ${b.toFixed(4)})`; }
+  }
+  if (val!=null) {
+    res.textContent = val.toFixed(6);
+    if(lbl) lbl.textContent = label;
+    // redraw chart with shading
+    if (c9Chart && c9LastDist !== 'all') drawC9Shading(val, label);
+  } else {
+    res.textContent='—';
+    if(lbl) lbl.textContent='';
+  }
+}
+
+function c9DistChanged() {
+  const dist = document.getElementById('c9-dist-select').value;
+  const queryPanel = document.getElementById('c9-prob-query');
+  if (queryPanel) queryPanel.style.display = (dist==='all') ? 'none' : 'block';
+  if (c9LastData.length >= 3) runC9();
+}
+
+function drawC9Shading(prob, label) {
+  // update chart with a shading layer
+  if (!c9Chart || !c9LastData.length) return;
+  const data = c9LastData, dist = c9LastDist, params = c9LastParams;
+  const mn=Math.min(...data), mx=Math.max(...data);
+  const pad=(mx-mn)*0.15;
+  const bins = autoBins(data);
+  const {histX, histY, binWidth} = makeHistogram(data, bins);
+  const N=400, dxS=(mx+pad-(mn-pad))/N;
+  const pdfXs=Array.from({length:N+1},(_,i)=>mn-pad+i*dxS);
+  const pdfYs=pdfXs.map(x=>pdfAtC9(x,dist,params)*data.length*binWidth);
+
+  // determine shade range
+  let lo2=-Infinity, hi2=Infinity;
+  if (c9QueryType==='below') { const b=parseFloat(document.getElementById('cq-b')?.value); if(!isNaN(b)){lo2=mn-pad;hi2=b;} }
+  else if (c9QueryType==='above') { const a=parseFloat(document.getElementById('cq-a')?.value); if(!isNaN(a)){lo2=a;hi2=mx+pad;} }
+  else { const a=parseFloat(document.getElementById('cq-a2')?.value),b=parseFloat(document.getElementById('cq-b2')?.value); if(!isNaN(a)&&!isNaN(b)){lo2=a;hi2=b;} }
+
+  const shadeXs=pdfXs.filter(x=>x>=lo2&&x<=hi2);
+  const shadeYs=shadeXs.map(x=>pdfAtC9(x,dist,params)*data.length*binWidth);
+
+  const newDatasets = c9Chart.data.datasets.filter(d=>d.label!=='Shaded region');
+  if (shadeXs.length>1) {
+    newDatasets.push({
+      type:'line', label:'Shaded region',
+      data: shadeXs.map((x,i)=>({x,y:shadeYs[i]})),
+      borderColor:'rgba(78,205,196,0.9)',
+      backgroundColor:'rgba(78,205,196,0.25)',
+      borderWidth:0, fill:true, pointRadius:0,
+    });
+  }
+  c9Chart.data.datasets = newDatasets;
+  c9Chart.update('none');
+}
+
+function applyC9ClickX(xVal) {
+  if (c9LastDist==='all') return;
+  if (c9QueryType==='below') {
+    const el=document.getElementById('cq-b'); if(el){el.value=xVal.toFixed(4);computeQueryProb();}
+  } else if (c9QueryType==='above') {
+    const el=document.getElementById('cq-a'); if(el){el.value=xVal.toFixed(4);computeQueryProb();}
+  } else {
+    const a=document.getElementById('cq-a2'), b=document.getElementById('cq-b2');
+    if(!a||!b) return;
+    if(!a.value||window._c9Click%2===0){a.value=xVal.toFixed(4);b.value='';window._c9Click=1;}
+    else{b.value=xVal.toFixed(4);window._c9Click=0;computeQueryProb();}
+  }
+  showC9Flash('bound set to '+xVal.toFixed(4));
+}
+
+function showC9Flash(msg) {
+  let el=document.getElementById('c9-flash');
+  if(!el){
+    el=document.createElement('div'); el.id='c9-flash';
+    el.style.cssText=`position:absolute;bottom:12px;left:50%;transform:translateX(-50%);background:#1c2030;border:1px solid #4ecdc4;color:#4ecdc4;padding:5px 14px;border-radius:20px;font-family:'DM Mono',monospace;font-size:0.75rem;pointer-events:none;transition:opacity 0.3s;z-index:10;`;
+    document.querySelector('.canvas-wrapper').style.position='relative';
+    document.querySelectorAll('.canvas-wrapper')[1]?.appendChild(el)||document.querySelector('.canvas-wrapper').appendChild(el);
+  }
+  el.textContent=msg; el.style.opacity='1';
+  clearTimeout(el._t); el._t=setTimeout(()=>el.style.opacity='0',2000);
+}
+
+function downloadC9Chart() {
+  if(!c9Chart) return;
+  const a=document.createElement('a');
+  a.href=document.getElementById('c9-chart').toDataURL('image/png');
+  a.download='c9_fitted_distribution.png'; a.click();
+}
+
+// ──────────────────────────────────────────────────────
+//  C9 — MAIN runC9
+// ──────────────────────────────────────────────────────
+// Freedman-Diaconis rule for optimal bin count
+function autoBins(data) {
+  const n = data.length;
+  if (n < 4) return 5;
+  const sorted = [...data].sort((a,b) => a-b);
+  const q1 = sorted[Math.floor(n*0.25)];
+  const q3 = sorted[Math.floor(n*0.75)];
+  const iqr = q3 - q1;
+  const range = sorted[n-1] - sorted[0];
+  if (iqr === 0) return Math.ceil(Math.sqrt(n)); // fallback: square-root rule
+  const h = 2 * iqr * Math.pow(n, -1/3);        // FD bin width
+  const bins = Math.ceil(range / h);
+  return Math.min(Math.max(bins, 5), 50);         // clamp to [5, 50]
+}
+
+function runC9() {
+  const data = parseData();
+  if (data.length < 3) { alert('Enter at least 3 values.'); return; }
+  const dist = document.getElementById('c9-dist-select').value;
+
+  c9LastData = data;
+  c9LastDist = dist;
+
+  const bins = autoBins(data);
+  document.getElementById('c9-bins').value = bins;
+  document.getElementById('c9-bins-display').textContent = `${bins} bins  (Freedman-Diaconis, n=${data.length})`;
+
+  if (dist === 'all') {
+    runC9All(data, bins);
+    return;
+  }
+
+  const params = fitDist(data, dist);
+  c9LastParams = params;
+  const { histX, histY, binWidth } = makeHistogram(data, bins);
+
+  const mn=Math.min(...data), mx=Math.max(...data);
+  const pad=(mx-mn)*0.15;
+  const N=400, dx=(mx+pad-(mn-pad))/N;
+  const pdfXs=Array.from({length:N+1},(_,i)=>mn-pad+i*dx);
+  const pdfYs=pdfXs.map(x=>pdfAtC9(x,dist,params)*data.length*binWidth);
+
+  if (c9Chart) c9Chart.destroy();
+  const ctx=document.getElementById('c9-chart').getContext('2d');
+
+  const c9Crosshair={
+    id:'c9crosshair',
+    afterDraw(chart){
+      if(chart._cx==null)return;
+      const{ctx:c,chartArea:{top,bottom}}=chart;
+      c.save();c.beginPath();c.setLineDash([4,4]);
+      c.strokeStyle='rgba(255,107,107,0.6)';c.lineWidth=1.5;
+      c.moveTo(chart._cx,top);c.lineTo(chart._cx,bottom);c.stroke();c.restore();
+    }
+  };
+
+  c9Chart=new Chart(ctx,{
+    data:{datasets:[
+      {type:'bar',label:'Histogram',
+        data:histX.map((x,i)=>({x,y:histY[i]})),
+        backgroundColor:'rgba(92,143,255,0.3)',borderColor:'rgba(92,143,255,0.6)',
+        borderWidth:1,barPercentage:0.95,categoryPercentage:1},
+      {type:'line',label:'Fitted PDF (scaled)',
+        data:pdfXs.map((x,i)=>({x,y:pdfYs[i]})),
+        borderColor:'#ff6b6b',backgroundColor:'transparent',
+        borderWidth:2.5,pointRadius:0,tension:0.2}
+    ]},
+    plugins:[c9Crosshair],
+    options:{
+      animation:false,responsive:true,
+      onHover(event,elements,chart){
+        if(!event.native)return;
+        const rect=chart.canvas.getBoundingClientRect();
+        const xPx=event.native.clientX-rect.left;
+        chart._cx=xPx; chart.draw();
+        const xVal=chart.scales.x.getValueForPixel(xPx);
+        let ft=document.getElementById('floating-tooltip');
+        if(!ft){ft=document.createElement('div');ft.id='floating-tooltip';
+          ft.style.cssText=`position:fixed;background:#14171f;border:1px solid #2a2f42;color:#e8eaf2;padding:8px 13px;border-radius:8px;font-family:'DM Mono',monospace;font-size:0.78rem;pointer-events:none;z-index:100;transition:opacity 0.15s;line-height:1.7;white-space:nowrap;`;
+          document.body.appendChild(ft);}
+        const fxv=pdfAtC9(xVal,dist,params);
+        ft.innerHTML=`<span style="color:#8891aa">x =</span> ${xVal.toFixed(4)}<br><span style="color:#8891aa">fitted f(x) =</span> <span style="color:#ff6b6b">${fxv.toFixed(6)}</span><br><span style="color:#8891aa;font-size:0.7rem">↓ click to set bound</span>`;
+        ft.style.opacity='1';ft.style.left=(event.native.clientX+16)+'px';ft.style.top=(event.native.clientY-10)+'px';
+      },
+      scales:{
+        x:{type:'linear',title:{display:true,text:'x',color:'#8891aa'},ticks:{color:'#8891aa'},grid:{color:'rgba(255,255,255,0.04)'}},
+        y:{title:{display:true,text:'Count',color:'#8891aa'},ticks:{color:'#8891aa'},grid:{color:'rgba(255,255,255,0.04)'},beginAtZero:true}
+      },
+      plugins:{legend:{labels:{color:'#8891aa',font:{family:'DM Mono'}}},tooltip:{enabled:false}}
+    }
+  });
+
+  // click handler
+  const canvas=document.getElementById('c9-chart');
+  canvas.style.cursor='crosshair';
+  canvas._clickHandler&&canvas.removeEventListener('click',canvas._clickHandler);
+  canvas._clickHandler=e=>{
+    const rect=canvas.getBoundingClientRect();
+    const xVal=c9Chart.scales.x.getValueForPixel(e.clientX-rect.left);
+    applyC9ClickX(xVal);
+  };
+  canvas.addEventListener('click',canvas._clickHandler);
+  canvas._leaveHandler&&canvas.removeEventListener('mouseleave',canvas._leaveHandler);
+  canvas._leaveHandler=()=>{
+    const ft=document.getElementById('floating-tooltip'); if(ft)ft.style.opacity='0';
+    if(c9Chart){c9Chart._cx=null;c9Chart.draw();}
+  };
+  canvas.addEventListener('mouseleave',canvas._leaveHandler);
+
+  // show query panel
+  const qp=document.getElementById('c9-prob-query');
+  if(qp){qp.style.display='block'; renderQueryInputs();}
+  document.getElementById('c9-download-btn').style.display='block';
+  document.getElementById('c9-compare-table').style.display='none';
+
+  showFittedParams(dist, params, data);
+}
+
+// ──────────────────────────────────────────────────────
+//  C9 — COMPARE ALL MODELS
+// ──────────────────────────────────────────────────────
+const MODEL_COLORS = {
+  uniform:'#5c8fff', triangular:'#f7c948', linear:'#ff6b6b',
+  piecewise_uniform:'#4ecdc4', normal:'#a78bfa'
+};
+const MODEL_NAMES = {
+  uniform:'Uniform', triangular:'Triangular', linear:'Linear',
+  piecewise_uniform:'Piecewise Uniform', normal:'Normal'
+};
+
+function runC9All(data, bins) {
+  const {histX, histY, binWidth}=makeHistogram(data, bins);
+  const mn=Math.min(...data),mx=Math.max(...data);
+  const pad=(mx-mn)*0.15;
+  const N=400,dx=(mx+pad-(mn-pad))/N;
+  const pdfXs=Array.from({length:N+1},(_,i)=>mn-pad+i*dx);
+
+  const allDists=['piecewise_uniform','linear','normal','uniform','triangular'];
+  const datasets=[
+    {type:'bar',label:'Histogram',
+      data:histX.map((x,i)=>({x,y:histY[i]})),
+      backgroundColor:'rgba(180,190,220,0.2)',borderColor:'rgba(180,190,220,0.4)',
+      borderWidth:1,barPercentage:0.95,categoryPercentage:1,order:99}
+  ];
+
+  const tableRows=[];
+  const mu_d=data.reduce((a,b)=>a+b,0)/data.length;
+  const sigma_d=Math.sqrt(data.reduce((s,v)=>s+(v-mu_d)**2,0)/data.length);
+
+  allDists.forEach(d=>{
+    const p=fitDist(data,d);
+    const ys=pdfXs.map(x=>pdfAtC9(x,d,p)*data.length*binWidth);
+    datasets.push({type:'line',label:MODEL_NAMES[d],
+      data:pdfXs.map((x,i)=>({x,y:ys[i]})),
+      borderColor:MODEL_COLORS[d],backgroundColor:'transparent',
+      borderWidth:2,pointRadius:0,tension:0.2,order:1});
+
+    // calc probs
+    const domain=[mn-2,mx+2];
+    const cdfFn=x=>{const n2=600,lo=domain[0],dx2=(x-lo)/n2;if(dx2<=0)return 0;
+      let s=0;for(let i=0;i<n2;i++){const x0=lo+i*dx2,x1=lo+(i+1)*dx2;s+=(pdfAtC9(x0,d,p)+pdfAtC9(x1,d,p))*dx2/2;}return Math.min(Math.max(s,0),1);};
+    const p1s=(cdfFn(mu_d+sigma_d)-cdfFn(mu_d-sigma_d)).toFixed(4);
+    const p2s=(1-(cdfFn(mu_d+2*sigma_d)-cdfFn(mu_d-2*sigma_d))).toFixed(4);
+    let paramStr='';
+    if(d==='normal') paramStr=`μ=${p.mu.toFixed(3)}, σ=${p.sigma.toFixed(3)}`;
+    else if(d==='uniform') paramStr=`a=${p.a.toFixed(3)}, b=${p.b.toFixed(3)}`;
+    else if(d==='triangular') paramStr=`a=${p.a.toFixed(3)}, c=${p.c.toFixed(3)}, b=${p.b.toFixed(3)}`;
+    else if(d==='linear') paramStr=`a=${p.a.toFixed(3)}, b=${p.b.toFixed(3)}, ${p.dir}`;
+    else if(d==='piecewise_uniform') paramStr=p.pieces.map((pc,i)=>`k${i+1}=${pc.k.toFixed(3)}`).join(', ');
+    tableRows.push({name:MODEL_NAMES[d],p1s,p2s,paramStr,color:MODEL_COLORS[d]});
+  });
+
+  if(c9Chart)c9Chart.destroy();
+  const ctx=document.getElementById('c9-chart').getContext('2d');
+  c9Chart=new Chart(ctx,{
+    data:{datasets},
+    options:{animation:false,responsive:true,
+      scales:{x:{type:'linear',title:{display:true,text:'x',color:'#8891aa'},ticks:{color:'#8891aa'},grid:{color:'rgba(255,255,255,0.04)'}},
+        y:{title:{display:true,text:'Count',color:'#8891aa'},ticks:{color:'#8891aa'},grid:{color:'rgba(255,255,255,0.04)'},beginAtZero:true}},
+      plugins:{legend:{labels:{color:'#8891aa',font:{family:'DM Mono'},boxWidth:14}},tooltip:{enabled:false}}}
+  });
+
+  // fill table
+  const tbody=document.getElementById('compare-tbl-body');
+  tbody.innerHTML=tableRows.map(r=>`<tr style="border-bottom:1px solid var(--border);">
+    <td style="padding:8px 12px;display:flex;align-items:center;gap:8px;"><span style="width:10px;height:10px;border-radius:50%;background:${r.color};display:inline-block;"></span>${r.name}</td>
+    <td style="text-align:right;padding:8px 12px;color:var(--accent3);">${r.p1s}</td>
+    <td style="text-align:right;padding:8px 12px;color:var(--accent2);">${r.p2s}</td>
+    <td style="text-align:left;padding:8px 12px;color:var(--text-muted);font-size:0.75rem;">${r.paramStr}</td>
+  </tr>`).join('');
+
+  document.getElementById('c9-compare-table').style.display='block';
+  document.getElementById('c9-fitted-params').style.display='none';
+  document.getElementById('c9-prob-section').style.display='none';
+  document.getElementById('c9-prob-query').style.display='none';
+  document.getElementById('c9-download-btn').style.display='block';
+  document.getElementById('c9-chart-title').textContent='All Models — Comparison';
+}
+
+// ──────────────────────────────────────────────────────
+//  C10 — REPORT DATASETS & CHARTS
+// ──────────────────────────────────────────────────────
+const C10_DATASETS = [
+  {
+    title: 'Daily Maximum Temperature — Bogotá',
+    sub: 'Variable: daily max temp (°C) · Source: IDEAM (2023)',
+    unit: '°C', xLabel: 'Temperature (°C)',
+    interp: 'The temperature data is nearly symmetric around 17.3°C. The Normal model best captures this shape, while the Piecewise Uniform reflects observed frequencies most literally. The Linear (decreasing) model over-represents lower temperatures.',
+    // 120 synthetic values mimicking IDEAM Bogotá monthly normals (14–20°C, peak ~17–18)
+    data: [16.2,17.1,17.8,18.1,16.8,17.4,17.9,18.2,17.0,16.5,17.3,17.7,16.9,18.0,17.5,
+           16.1,17.2,17.6,18.3,16.7,17.8,17.1,16.4,17.9,18.1,17.3,16.6,17.4,17.0,18.2,
+           17.5,16.8,17.7,18.0,17.2,16.3,17.6,17.9,16.9,18.1,17.4,16.5,17.1,17.8,18.3,
+           16.7,17.3,17.6,16.2,18.0,17.1,17.5,16.8,17.9,18.2,16.4,17.2,17.7,16.6,17.3,
+           18.1,17.4,16.9,17.8,17.0,18.3,16.3,17.5,17.2,16.7,18.0,17.6,17.3,16.8,17.9,
+           18.2,17.1,16.5,17.4,17.7,16.2,18.1,17.0,17.8,16.6,17.5,18.3,17.2,16.9,17.6,
+           17.4,18.0,16.8,17.3,17.9,16.4,17.7,18.1,17.1,16.3,17.6,17.4,18.2,16.7,17.0,
+           17.8,16.5,18.0,17.3,16.9,17.5,17.2,18.3,16.6,17.7,17.9,17.1,16.8,17.4,17.6]
+  },
+  {
+    title: 'International Arabica Coffee Price',
+    sub: 'Variable: monthly avg price (USD/lb) · Source: ICO (2024)',
+    unit: 'USD/lb', xLabel: 'Price (USD/lb)',
+    interp: 'Coffee prices show positive skew driven by 2021–2022 supply shocks. The Piecewise Uniform model best tracks the uneven frequency distribution across price bands. The Normal model underestimates right-tail risk; the Linear (increasing) model partially captures the skew.',
+    data: [1.28,1.35,1.42,1.38,1.55,1.62,1.48,1.71,1.85,1.92,2.04,1.78,1.95,2.15,2.08,
+           1.88,2.22,2.31,2.18,2.45,2.38,2.61,2.74,2.89,3.02,3.15,3.28,3.08,2.92,2.76,
+           2.58,2.41,2.25,2.12,1.98,1.82,1.68,1.55,1.44,1.52,1.65,1.73,1.81,1.94,2.06,
+           2.18,2.29,2.41,2.35,2.22,2.08,1.95,1.82,1.71,1.62,1.74,1.86,1.95,2.08,2.21,
+           2.35,2.48,2.62,2.78,2.91,3.05,3.18,3.31,3.21,3.09,2.95,2.81,2.68,2.54,2.39,
+           2.24,2.11,1.98,1.84,1.72,1.61,1.52,1.45,1.38,1.32,1.42,1.54,1.67,1.79,1.91,
+           2.03,2.16,2.28,2.42,2.55,2.68,2.82,2.95,3.08,2.98,2.84,2.71,2.57,2.43,2.28,
+           2.14,2.01,1.88,1.75,1.63,1.54,1.47,1.58,1.69,1.82,1.95,2.08,2.22,2.36,2.51]
+  },
+  {
+    title: 'Daily TransMilenio Ridership — Bogotá',
+    sub: 'Variable: daily trips (millions) · Source: Sec. Movilidad (2023)',
+    unit: 'M trips', xLabel: 'Ridership (millions)',
+    interp: 'TransMilenio ridership is highly stable with very low variance. The Normal model fits excellently given the near-perfect symmetry. The Piecewise Uniform captures the central concentration in blocks, while the Linear model is clearly inappropriate for this symmetric data.',
+    // tight bell around 2.18M
+    data: [2.05,2.12,2.18,2.21,2.15,2.09,2.23,2.31,2.17,2.08,2.19,2.25,2.14,2.28,2.11,
+           2.06,2.20,2.16,2.29,2.13,2.07,2.22,2.18,2.26,2.10,2.17,2.24,2.15,2.08,2.21,
+           2.19,2.14,2.27,2.11,2.06,2.23,2.18,2.16,2.25,2.12,2.09,2.20,2.17,2.28,2.13,
+           2.07,2.22,2.19,2.15,2.26,2.11,2.08,2.24,2.18,2.21,2.14,2.06,2.23,2.17,2.29,
+           2.12,2.09,2.20,2.16,2.25,2.13,2.07,2.22,2.18,2.27,2.11,2.08,2.19,2.15,2.24,
+           2.10,2.06,2.21,2.17,2.28,2.14,2.09,2.23,2.18,2.16,2.26,2.12,2.07,2.20,2.15,
+           2.25,2.11,2.08,2.22,2.19,2.17,2.29,2.13,2.06,2.24,2.18,2.21,2.14,2.09,2.20,
+           2.16,2.27,2.12,2.07,2.23,2.18,2.25,2.11,2.08,2.19,2.15,2.26,2.13,2.10,2.22]
+  }
+];
+
+let c10Charts = [null, null, null];
+let c10ActiveDs = 0;
+
+function showDataset(idx) {
+  c10ActiveDs = idx;
+  ['ds-btn-0','ds-btn-1','ds-btn-2'].forEach((id,i)=>{
+    document.getElementById(id)?.classList.toggle('active', i===idx);
+  });
+  renderC10Dataset(idx);
+}
+
+function renderC10Dataset(idx) {
+  const ds = C10_DATASETS[idx];
+  document.getElementById('c10-ds-title').textContent = ds.title;
+  document.getElementById('c10-ds-sub').textContent = ds.sub;
+
+  const data = ds.data;
+  const n = data.length;
+  const mu = data.reduce((a,b)=>a+b,0)/n;
+  const sigma = Math.sqrt(data.reduce((s,v)=>s+(v-mu)**2,0)/n);
+  const bins = 15;
+  const {histX, histY, binWidth} = makeHistogram(data, bins);
+  const mn=Math.min(...data), mx=Math.max(...data);
+  const pad=(mx-mn)*0.2;
+  const N=300, dxP=(mx+pad-(mn-pad))/N;
+  const pdfXs=Array.from({length:N+1},(_,i)=>mn-pad+i*dxP);
+
+  const modelsForC10 = ['piecewise_uniform','linear','normal'];
+  const modelColors = ['#4ecdc4','#ff6b6b','#a78bfa'];
+  const domain=[mn-2,mx+2];
+
+  // destroy old charts
+  c10Charts.forEach(c=>c&&c.destroy());
+  c10Charts=[null,null,null];
+
+  const tableRows=[];
+
+  modelsForC10.forEach((dist,ci)=>{
+    const params=fitDist(data,dist);
+    const pdfYs=pdfXs.map(x=>pdfAtC9(x,dist,params)*data.length*binWidth);
+
+    const ctx=document.getElementById('c10-chart-'+ci).getContext('2d');
+    c10Charts[ci]=new Chart(ctx,{
+      data:{datasets:[
+        {type:'bar',label:'Data',data:histX.map((x,i)=>({x,y:histY[i]})),
+          backgroundColor:'rgba(180,190,220,0.25)',borderColor:'rgba(180,190,220,0.5)',
+          borderWidth:1,barPercentage:0.95,categoryPercentage:1},
+        {type:'line',label:'Fitted PDF',data:pdfXs.map((x,i)=>({x,y:pdfYs[i]})),
+          borderColor:modelColors[ci],backgroundColor:'transparent',
+          borderWidth:2,pointRadius:0,tension:0.2}
+      ]},
+      options:{animation:false,responsive:true,
+        scales:{x:{type:'linear',title:{display:true,text:ds.xLabel,color:'#8891aa',font:{size:10}},ticks:{color:'#8891aa',font:{size:10},maxTicksLimit:5},grid:{color:'rgba(255,255,255,0.03)'}},
+          y:{ticks:{color:'#8891aa',font:{size:10}},grid:{color:'rgba(255,255,255,0.03)'},beginAtZero:true}},
+        plugins:{legend:{labels:{color:'#8891aa',font:{family:'DM Mono',size:10},boxWidth:10}},tooltip:{backgroundColor:'#14171f',bodyColor:'#8891aa',titleColor:'#e8eaf2',borderColor:'#2a2f42',borderWidth:1}}}
+    });
+
+    // prob calcs
+    const cdfFn=x=>{const n2=600,lo=domain[0],dx2=(x-lo)/n2;if(dx2<=0)return 0;
+      let s=0;for(let i=0;i<n2;i++){const x0=lo+i*dx2,x1=lo+(i+1)*dx2;s+=(pdfAtC9(x0,dist,params)+pdfAtC9(x1,dist,params))*dx2/2;}return Math.min(Math.max(s,0),1);};
+    const p1s=cdfFn(mu+sigma)-cdfFn(mu-sigma);
+    const p2s=1-(cdfFn(mu+2*sigma)-cdfFn(mu-2*sigma));
+
+    let modelName={piecewise_uniform:'Piecewise Uniform',linear:'Linear',normal:'Normal'}[dist];
+    tableRows.push({name:modelName,mu:mu.toFixed(4),sigma:sigma.toFixed(4),
+      p1s:p1s.toFixed(4),p2s:p2s.toFixed(4),color:modelColors[ci]});
+  });
+
+  document.getElementById('c10-prob-body').innerHTML=tableRows.map(r=>`
+    <tr style="border-bottom:1px solid var(--border);">
+      <td style="padding:8px 12px;"><span style="width:10px;height:10px;border-radius:50%;background:${r.color};display:inline-block;margin-right:8px;vertical-align:middle;"></span>${r.name}</td>
+      <td style="text-align:right;padding:8px 12px;font-family:'DM Mono',monospace;">${r.mu}</td>
+      <td style="text-align:right;padding:8px 12px;font-family:'DM Mono',monospace;">${r.sigma}</td>
+      <td style="text-align:right;padding:8px 12px;color:var(--accent3);font-family:'DM Mono',monospace;">${r.p1s}</td>
+      <td style="text-align:right;padding:8px 12px;color:var(--accent2);font-family:'DM Mono',monospace;">${r.p2s}</td>
+    </tr>`).join('');
+
+  document.getElementById('c10-interp').innerHTML=ds.interp;
+}
+
+function downloadC10Chart() {
+  // stitch all 3 canvases into one image
+  const canvases=['c10-chart-0','c10-chart-1','c10-chart-2'].map(id=>document.getElementById(id));
+  const w=canvases[0].width, h=canvases[0].height;
+  const combined=document.createElement('canvas');
+  combined.width=w*3; combined.height=h;
+  const ctx2=combined.getContext('2d');
+  ctx2.fillStyle='#0d0f14'; ctx2.fillRect(0,0,combined.width,combined.height);
+  canvases.forEach((c,i)=>ctx2.drawImage(c,i*w,0));
+  const a=document.createElement('a');
+  a.href=combined.toDataURL('image/png');
+  a.download=`c10_dataset${c10ActiveDs+1}_charts.png`; a.click();
+}
+
+function fitDist(data, dist) {
+  const n = data.length;
+  const mn = Math.min(...data), mx = Math.max(...data);
+  const mu = data.reduce((a,b)=>a+b,0)/n;
+  const sigma = Math.sqrt(data.reduce((s,v)=>s+(v-mu)**2,0)/n);
+
+  switch (dist) {
+    case 'uniform': return { a: mn, b: mx };
+    case 'triangular': {
+      // Method of moments: mode = 3*mu - a - b
+      const c = Math.min(Math.max(3*mu - mn - mx, mn+0.001), mx-0.001);
+      return { a: mn, b: mx, c };
+    }
+    case 'linear': {
+      // Determine direction from skewness
+      const skew = data.reduce((s,v)=>s+((v-mu)/sigma)**3,0)/n;
+      return { a: mn, b: mx, dir: skew >= 0 ? 'inc' : 'dec' };
+    }
+    case 'piecewise_uniform': {
+      const bw = (mx-mn)/4;
+      const pieces = [];
+      for (let i=0;i<4;i++) {
+        const pa = mn+i*bw, pb = mn+(i+1)*bw;
+        const cnt = data.filter(v=>v>=pa&&v<pb).length;
+        pieces.push({ a: pa, b: pb, k: cnt/(n*bw) });
+      }
+      return { pieces };
+    }
+    case 'normal': return { mu, sigma };
+  }
+  return {};
+}
+
+function pdfAtC9(x, dist, p) {
+  switch (dist) {
+    case 'uniform': {
+      if (p.b <= p.a) return 0;
+      return (x >= p.a && x <= p.b) ? 1/(p.b-p.a) : 0;
+    }
+    case 'triangular': {
+      const {a,b,c}=p;
+      if (x<a||x>b) return 0;
+      if (x<=c) return 2*(x-a)/((b-a)*(c-a));
+      return 2*(b-x)/((b-a)*(b-c));
+    }
+    case 'linear': {
+      const {a,b,dir}=p;
+      if (x<a||x>b) return 0;
+      const h=b-a;
+      if (dir==='inc') return 2*(x-a)/(h*h);
+      return 2*(b-x)/(h*h);
+    }
+    case 'piecewise_uniform': {
+      for (const pc of p.pieces) if (x>=pc.a&&x<pc.b) return pc.k;
+      return 0;
+    }
+    case 'normal': {
+      const {mu,sigma}=p;
+      if (sigma<=0) return 0;
+      return (1/(sigma*Math.sqrt(2*Math.PI)))*Math.exp(-0.5*((x-mu)/sigma)**2);
+    }
+  }
+  return 0;
+}
+
+function makeHistogram(data, bins) {
+  const mn = Math.min(...data), mx = Math.max(...data);
+  const bw = (mx-mn)/bins;
+  const counts = Array(bins).fill(0);
+  data.forEach(v => {
+    let i = Math.floor((v-mn)/bw);
+    if (i >= bins) i = bins-1;
+    counts[i]++;
+  });
+  const histX = Array.from({length:bins}, (_,i) => mn + (i+0.5)*bw);
+  return { histX, histY: counts, binWidth: bw };
+}
+
+function showFittedParams(dist, params, data) {
+  const n=data.length;
+  const mu_d = data.reduce((a,b)=>a+b,0)/n;
+  const sigma_d = Math.sqrt(data.reduce((s,v)=>s+(v-mu_d)**2,0)/n);
+
+  let chips = [];
+  if (dist==='uniform') chips=[{l:'a',v:params.a.toFixed(4)},{l:'b',v:params.b.toFixed(4)},{l:'Range',v:(params.b-params.a).toFixed(4)}];
+  else if (dist==='triangular') chips=[{l:'a',v:params.a.toFixed(4)},{l:'b',v:params.b.toFixed(4)},{l:'Mode c',v:params.c.toFixed(4)}];
+  else if (dist==='linear') chips=[{l:'a',v:params.a.toFixed(4)},{l:'b',v:params.b.toFixed(4)},{l:'Direction',v:params.dir==='inc'?'Increasing':'Decreasing'}];
+  else if (dist==='piecewise_uniform') chips=params.pieces.map((pc,i)=>({l:`k${i+1} [${pc.a.toFixed(1)},${pc.b.toFixed(1)})`,v:pc.k.toFixed(4)}));
+  else if (dist==='normal') chips=[{l:'μ (mean)',v:params.mu.toFixed(4)},{l:'σ (std dev)',v:params.sigma.toFixed(4)}];
+
+  document.getElementById('c9-params-title').textContent = 'Fitted Parameters — ' + {
+    uniform:'Uniform',triangular:'Triangular',linear:'Linear',
+    piecewise_uniform:'Piecewise Uniform',normal:'Normal'
+  }[dist];
+
+  document.getElementById('c9-params-grid').innerHTML = chips.map(c=>
+    `<div class="param-chip"><div class="pc-label">${c.l}</div><div class="pc-val">${c.v}</div></div>`
+  ).join('');
+
+  document.getElementById('c9-interpretation').innerHTML = generateInterpretation(dist, params, data, mu_d, sigma_d);
+  document.getElementById('c9-fitted-params').style.display = 'block';
+
+  // Prob summary
+  const domain = [Math.min(...data)-2, Math.max(...data)+2];
+  const cdfFn = (x) => {
+    const n2=1000, lo=domain[0], dx2=(x-lo)/n2;
+    if(dx2<=0) return 0;
+    let s=0;
+    for(let i=0;i<n2;i++){const x0=lo+i*dx2,x1=lo+(i+1)*dx2;s+=(pdfAtC9(x0,dist,params)+pdfAtC9(x1,dist,params))*dx2/2;}
+    return Math.min(Math.max(s,0),1);
+  };
+  const p1sigma = cdfFn(mu_d+sigma_d)-cdfFn(mu_d-sigma_d);
+  const p2sigma = 1-(cdfFn(mu_d+2*sigma_d)-cdfFn(mu_d-2*sigma_d));
+  document.getElementById('c9-prob-cards').innerHTML = `
+    <div class="prob-card"><div class="pc-type">P(μ−σ &lt; X &lt; μ+σ)</div><div class="pc-val">${p1sigma.toFixed(4)}</div></div>
+    <div class="prob-card"><div class="pc-type">P(X &lt; μ−2σ or X &gt; μ+2σ)</div><div class="pc-val">${p2sigma.toFixed(4)}</div></div>
+    <div class="prob-card"><div class="pc-type">Sample size n</div><div class="pc-val">${data.length}</div></div>
+  `;
+  document.getElementById('c9-prob-section').style.display = 'block';
+}
+
+function generateInterpretation(dist, params, data, mu, sigma) {
+  const n=data.length;
+  const mn=Math.min(...data),mx=Math.max(...data);
+  const range=mx-mn;
+  const cv=(sigma/Math.abs(mu)*100).toFixed(1);
+  const skew=(data.reduce((s,v)=>s+((v-mu)/sigma)**3,0)/n).toFixed(3);
+
+  let base = `<strong>Dataset summary:</strong> n = ${n}, mean = ${mu.toFixed(3)}, σ = ${sigma.toFixed(3)}, range = [${mn.toFixed(2)}, ${mx.toFixed(2)}], CV = ${cv}%, skewness ≈ ${skew}.<br><br>`;
+  let fit = '';
+  if (dist==='uniform') fit = `The fitted <strong>Uniform(a=${params.a.toFixed(3)}, b=${params.b.toFixed(3)})</strong> assigns equal probability across the range. This model fits well if the histogram bars are approximately equal in height. It may not be appropriate if the data shows clear peaks or asymmetry.`;
+  else if (dist==='triangular') fit = `The fitted <strong>Triangular(a=${params.a.toFixed(3)}, c=${params.c.toFixed(3)}, b=${params.b.toFixed(3)})</strong> places maximum density at the mode. It appears reasonable if the histogram has a single clear peak. Values of skewness near ${skew} suggest ${Math.abs(parseFloat(skew))<0.5?'mild':'notable'} asymmetry in the data.`;
+  else if (dist==='linear') fit = `The fitted <strong>Linear (${params.dir}) PDF</strong> on [${params.a.toFixed(3)}, ${params.b.toFixed(3)}] models a monotone density. It is appropriate when data values are systematically more likely toward one end. Skewness of ${skew} ${parseFloat(skew)*( params.dir==='inc'?1:-1)>0?'supports':'weakly supports'} this direction.`;
+  else if (dist==='piecewise_uniform') fit = `The <strong>Piecewise Uniform</strong> model divides the range into 4 equal bins and assigns a constant density proportional to the observed frequency in each bin. This is a non-parametric approximation that will always match the histogram shape well. It is flexible but may overfit noise.`;
+  else if (dist==='normal') fit = `The fitted <strong>Normal(μ=${params.mu.toFixed(3)}, σ=${params.sigma.toFixed(3)})</strong> predicts ~68% of values within one standard deviation of the mean. ${Math.abs(parseFloat(skew))<0.5?'The low skewness value supports this model.':'The skewness of '+skew+' suggests the normal model may not be ideal — consider a skewed distribution.'}`;
+  return base + fit;
+}
+
+// ──────────────────────────────────────────────────────
+//  CLICK INTERACTIVITY HELPERS
+// ──────────────────────────────────────────────────────
+
+// Pulse animation on the probability result box
+function pulseResult() {
+  const el = document.getElementById('prob-value');
+  el.style.transition = 'transform 0.12s ease, color 0.12s ease';
+  el.style.transform = 'scale(1.18)';
+  el.style.color = '#5c8fff';
+  setTimeout(() => {
+    el.style.transform = 'scale(1)';
+    el.style.color = '#4ecdc4';
+  }, 180);
+}
+
+// When user clicks on canvas: set the nearest probability bound
+function applyClickX(xVal) {
+  if (probType === 'below') {
+    const inp = document.getElementById('pb-b');
+    if (inp) { inp.value = xVal.toFixed(4); drawChart(); pulseResult(); showClickFlash('b set to ' + xVal.toFixed(4)); }
+  } else if (probType === 'above') {
+    const inp = document.getElementById('pa-a');
+    if (inp) { inp.value = xVal.toFixed(4); drawChart(); pulseResult(); showClickFlash('a set to ' + xVal.toFixed(4)); }
+  } else {
+    // between: first click sets a, second sets b
+    const inpA = document.getElementById('pbt-a');
+    const inpB = document.getElementById('pbt-b');
+    if (!inpA || !inpB) return;
+    const aVal = parseFloat(inpA.value);
+    if (isNaN(aVal) || window._clickCount % 2 === 0) {
+      inpA.value = xVal.toFixed(4);
+      inpB.value = '';
+      window._clickCount = 1;
+      showClickFlash('lower bound a set — click again for b');
+    } else {
+      inpB.value = xVal.toFixed(4);
+      window._clickCount = 0;
+      showClickFlash('b set to ' + xVal.toFixed(4));
+    }
+    drawChart(); pulseResult();
+  }
+}
+
+// Small flash banner on the canvas wrapper
+function showClickFlash(msg) {
+  let el = document.getElementById('click-flash');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'click-flash';
+    el.style.cssText = `position:absolute;bottom:12px;left:50%;transform:translateX(-50%);
+      background:#1c2030;border:1px solid #4ecdc4;color:#4ecdc4;
+      padding:5px 14px;border-radius:20px;font-family:'DM Mono',monospace;
+      font-size:0.75rem;pointer-events:none;transition:opacity 0.3s;z-index:10;`;
+    document.querySelector('.canvas-wrapper').style.position = 'relative';
+    document.querySelector('.canvas-wrapper').appendChild(el);
+  }
+  el.textContent = msg;
+  el.style.opacity = '1';
+  clearTimeout(el._t);
+  el._t = setTimeout(() => { el.style.opacity = '0'; }, 2200);
+}
+
+// Floating tooltip that follows the mouse on the chart
+function showFloatingTooltip(nativeEvent, xVal, chart) {
+  let ft = document.getElementById('floating-tooltip');
+  if (!ft) {
+    ft = document.createElement('div');
+    ft.id = 'floating-tooltip';
+    ft.style.cssText = `position:fixed;background:#14171f;border:1px solid #2a2f42;
+      color:#e8eaf2;padding:8px 13px;border-radius:8px;font-family:'DM Mono',monospace;
+      font-size:0.78rem;pointer-events:none;z-index:100;transition:opacity 0.15s;
+      line-height:1.7;white-space:nowrap;`;
+    document.body.appendChild(ft);
+  }
+  const p = getPDFParams();
+  if (!p) return;
+  const domain = getDomain(p);
+  const fx = pdfAt(xVal, p);
+  const cdf = cdfAt(xVal, p, domain);
+  ft.innerHTML = `<span style="color:#8891aa">x =</span> ${xVal.toFixed(4)}<br>
+    <span style="color:#8891aa">f(x) =</span> <span style="color:#5c8fff">${fx.toFixed(6)}</span><br>
+    <span style="color:#8891aa">F(x) =</span> <span style="color:#4ecdc4">${cdf.toFixed(6)}</span><br>
+    <span style="color:#8891aa;font-size:0.7rem">↓ click to set bound</span>`;
+  ft.style.opacity = '1';
+  ft.style.left = (nativeEvent.clientX + 16) + 'px';
+  ft.style.top  = (nativeEvent.clientY - 10) + 'px';
+}
+
+// ──────────────────────────────────────────────────────
+//  INIT
+// ──────────────────────────────────────────────────────
+window._clickCount = 0;
+window._c9Click = 0;
+document.addEventListener('DOMContentLoaded', () => {
+  renderParamUI();
+  renderProbInputs();
+  renderQueryInputs();
+  renderC10Dataset(0);
+});
+</script>
+</body>
+</html>
